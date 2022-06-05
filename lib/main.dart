@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:stroke_rehab/page/counter.dart';
+import 'package:stroke_rehab/page/game_select.dart';
+import 'package:stroke_rehab/page/history.dart';
 import 'package:stroke_rehab/page/home.dart';
+
+import 'page/test.dart';
 
 void main() {
   runApp(const MyApp());
@@ -53,10 +57,13 @@ class _MyHomePageState extends State<MyHomePage> {
   int currentIndex = 0;
   final screens = [
     // Center(child: Text('Home', style: TextStyle(fontSize:60),),),
-    HomeCounter(title: 'Home counter'),
-    Center(child: Text('Game', style: TextStyle(fontSize:60),),),
+    Home(),
+    // HomeCounter(title: 'Home counter'),
+    GameSelect(),
+    // Quizzler(),
+    const Test()
     // Center(child: Text('History', style: TextStyle(fontSize:60),),),
-    Home()
+
   ];
 
   @override
