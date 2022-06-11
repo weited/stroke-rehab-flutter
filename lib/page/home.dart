@@ -85,7 +85,7 @@ class _HomeState extends State<Home> {
     );
   }
 
-  Future<void> getUserName() async {
+  void getUserName() async {
     final prefs = await SharedPreferences.getInstance();
 
     if (prefs.getString('username') != null &&

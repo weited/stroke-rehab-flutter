@@ -3,15 +3,16 @@ import 'package:stroke_rehab/page/counter.dart';
 import 'package:stroke_rehab/page/game_select.dart';
 import 'package:stroke_rehab/page/history.dart';
 import 'package:stroke_rehab/page/home.dart';
+import 'package:stroke_rehab/widgets/time_picker.dart';
 
 import 'page/test.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+  // const MyApp({Key? key}) : super(key: key);
 
   // This widget is the root of your application.
   @override
@@ -30,13 +31,13 @@ class MyApp extends StatelessWidget {
         // is not restarted.
         primarySwatch: Colors.blue,
       ),
-      home: const MyHomePage(),
+      home: MyHomePage(),
     );
   }
 }
 
 class MyHomePage extends StatefulWidget {
-  const MyHomePage({Key? key}) : super(key: key);
+  // const MyHomePage({Key? key}) : super(key: key);
 
   // This widget is the home page of your application. It is stateful, meaning
   // that it has a State object (defined below) that contains fields that affect
@@ -54,14 +55,17 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   int currentIndex = 0;
   final screens = [
     // Center(child: Text('Home', style: TextStyle(fontSize:60),),),
     Home(),
     // HomeCounter(title: 'Home counter'),
     GameSelect(),
+    // TimePickerWidget(),
     // Quizzler(),
-    const Test()
+    // History(),
+    Test()
     // Center(child: Text('History', style: TextStyle(fontSize:60),),),
 
   ];

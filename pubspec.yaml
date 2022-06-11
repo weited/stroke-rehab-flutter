@@ -35,6 +35,10 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.2
   shared_preferences: ^2.0.15
+  intl: ^0.17.0
+  # add this line to your dependencies
+  flutter_picker: ^2.0.3
+    #git: git://github.com/yangyxd/flutter_picker.git
 
 dev_dependencies:
   flutter_test:
