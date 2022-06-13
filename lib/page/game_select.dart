@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:stroke_rehab/page/game_customization.dart';
 import 'package:stroke_rehab/page/game_mode.dart';
 import 'package:stroke_rehab/page/game_play.dart';
 import 'package:stroke_rehab/widgets/large_selection_button.dart';
@@ -19,7 +20,7 @@ class GameSelect extends StatelessWidget {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => GamePlay()),
+                MaterialPageRoute(builder: (context) => GameCustom()),
               );
             },
           ),
@@ -31,7 +32,10 @@ class GameSelect extends StatelessWidget {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const GameMode(isPescGame: false,)),
+                  MaterialPageRoute(
+                      builder: (context) => const GameMode(
+                            isPescGame: false,
+                          )),
                 );
                 print('Game two');
               })
@@ -39,6 +43,4 @@ class GameSelect extends StatelessWidget {
       ),
     );
   }
-
-
 }

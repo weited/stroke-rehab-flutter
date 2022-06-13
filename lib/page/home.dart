@@ -13,31 +13,26 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
-  String name = 'Explorer';
+  late String name = '';
 
   // final prefs = await SharedPreferences.getInstance();
 
   @override
   void initState() {
     // TODO: implement initState
-    super.initState();
     getUserName();
+    super.initState();
+
     print('The home initState');
   }
 
   // Home({Key? key, this.name}) : super(key: key);
   @override
   Widget build(BuildContext context) {
-    // name = getUserName();
-    // String name = 'Explorer';
     return Scaffold(
       appBar: AppBar(
-        title: Center(
-          child: Text(
-            'Home',
-            textAlign: TextAlign.center,
-          ),
-        ),
+        title: const Text('Home'),
+        centerTitle: true,
       ),
       body: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -92,6 +87,10 @@ class _HomeState extends State<Home> {
         prefs.getString('username')?.isNotEmpty == true) {
       setState(() {
         name = prefs.getString('username')!;
+      });
+    } else {
+      setState(() {
+        name = 'Explorer';
       });
     }
   }

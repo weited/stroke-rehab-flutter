@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../constants.dart';
+
 class LargeSelectionButton extends StatelessWidget {
   final String buttonTitle;
   final Function() onPressed;
@@ -13,10 +15,14 @@ class LargeSelectionButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ElevatedButton(
-      style: ElevatedButton.styleFrom(fixedSize: const Size(0, 80)),
+      style: ElevatedButton.styleFrom(
+        shape: RoundedRectangleBorder(),
+          // fixedSize: const Size(0, 80),
+      ),
       onPressed: onPressed,
       child: Center(
-        child: Text(buttonTitle),
+        child: Text(buttonTitle,
+          style: kLargeButtonTextStyle,),
       ),
     );
   }

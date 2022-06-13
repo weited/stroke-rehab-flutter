@@ -1,9 +1,11 @@
-import 'dart:ffi';
+// import 'dart:ffi';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:stroke_rehab/button.dart';
 import 'package:stroke_rehab/constants.dart';
+import 'package:stroke_rehab/exercise.dart';
+import 'package:stroke_rehab/page/game_done.dart';
 
 class GamePlay extends StatefulWidget {
   GameName gameName;
@@ -20,13 +22,13 @@ class GamePlay extends StatefulWidget {
     Key? key,
     this.gameName = GameName.prescribed,
     this.isFreeMode = false,
-    this.goalType = GameGoalType.repetitionLimit,
-    this.repeLimit = 3,
-    this.timeLimit = 30,
-    this.isBtnRandom = true,
-    this.isBtnIndicator = true,
-    this.btnNum = 3,
-    this.btnSize = 50,
+    required this.goalType,
+    required this.repeLimit,
+    required this.timeLimit,
+    required this.isBtnRandom,
+    required this.isBtnIndicator,
+    required this.btnNum,
+    required this.btnSize,
   }) : super(key: key);
 
   @override
@@ -38,7 +40,7 @@ class _GamePlayState extends State<GamePlay> {
   late final bool isCompleted = false;
   late final String gameStartAt;
   late final String gameEndAt;
-  late int repetitionDone;
+  int repetitionDone = 0;
   late int timeTaken;
   String titleText = 'Game';
   String goalText = 'A';
@@ -55,6 +57,8 @@ class _GamePlayState extends State<GamePlay> {
   List<Button> btnInforList = [];
   var containerKey;
 
+  get repeLimit => widget.repeLimit;
+
   @override
   void initState() {
     // TODO: implement initState
@@ -65,177 +69,242 @@ class _GamePlayState extends State<GamePlay> {
     super.initState();
     print('btn groupd has ${btnUIGroup.length}');
 
-    // WidgetsBinding.instance?.addPostFrameCallback((timeStamp) {
-    //   Random random = Random();
-    //   int randomNumber = random.nextInt(50);
-    //   var theBtn = containerKey.currentContext;
-    //   setState(() {
-    //     // btnPosition.first.first = randomNumber.toDouble();
-    //     btnPosition = [
-    //       [randomNumber.toDouble(), 150],
-    //       [180, 240],
-    //       [50, 300]
-    //     ];
-    //     createBtnGroup();
-    //     goalText = 'new value $theBtn';
-    //   });
-    // });
+    WidgetsBinding.instance?.addPostFrameCallback((timeStamp) {
+      // After calculated the container width and height,
+      widget.isBtnRandom ? generateBtnRandPosition() : generateBtnFixPosition();
+      setState(() {
+        createBtnInforList();
+      });
+      print(
+          "after call back $btnPosition + ${btnUIGroup.length} + infor ${btnInforList.length}");
+
+      print('repe: $repeLimit, '
+          'time: ${widget.timeLimit}, '
+          'isRand: ${widget.isBtnRandom}, '
+          'next-indi: ${widget.isBtnIndicator}, btnnum: ${widget.btnNum}, btnS: ${widget.btnSize}'
+          'type: ${widget.goalType}');
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     print('inside build');
-    containerKey = GlobalKey();
-    return Scaffold(
-      appBar: AppBar(
-        centerTitle: true,
-        title: Text(titleText),
-      ),
-      body: Column(
-        children: [
-          Container(
-            color: kTextContainerColor,
-            // height: 80,
-            width: double.infinity,
-            padding: EdgeInsets.only(top: 10, bottom: 10),
-            child: Column(
-              children: [
-                // Text('${containerKey.currentContext}'),
-                Text('Tap two buttons with same number'),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [Text('Your goal: '), Text('You reached:')],
-                ),
-                ElevatedButton(
-                  child: const Text(
-                    'But',
-                    style: TextStyle(fontSize: 20),
-                  ),
-                  onPressed: () {
-                    print('hell');
-                    setState(() {
-                      btnInforList[0].title = "g";
-                      btnInforList[0].color = Colors.red;
-                    });
-                  },
-                  onLongPress: () {
-                    print('long press');
-                  },
-                  style: ElevatedButton.styleFrom(
-                    fixedSize: const Size(100, 100),
-                    shape: const CircleBorder(),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: Container(
-              key: containerKey,
-              color: Colors.red,
+    // containerKey = GlobalKey();
+    return WillPopScope(
+      // https://stackoverflow.com/questions/61808024/flutter-how-can-i-catch-a-back-button-press-to-exit-my-app
+      onWillPop: () async {
+        // bool willLeave = false;
+        // show the confirm dialog
+        await showDialog(
+            context: context,
+            builder: (_) => AlertDialog(
+                  title: const Text('Are you sure want to leave?'),
+                  actions: [
+                    ElevatedButton(
+                        onPressed: () {
+                          // willLeave = true;
+                          Navigator.of(context).pop();
+                          finishGame();
+                          // Navigator.pushReplacement(
+                          //     context, MaterialPageRoute(builder: (context)=>GameDone()));
+                        },
+                        child: const Text('Yes')),
+                    TextButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        child: const Text('No'))
+                  ],
+                ));
+        return false;
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          centerTitle: true,
+          title: Text(titleText),
+          automaticallyImplyLeading: false,
+        ),
+        body: Column(
+          children: [
+            Container(
+              color: kTextContainerColor,
+              // height: 80,
               width: double.infinity,
-              child: LayoutBuilder(
-                builder: (BuildContext context, BoxConstraints constraints) {
-                  print("${constraints.maxWidth}");
-                  btnContainerWidth = constraints.maxWidth.floor();
-                  btnContainerHeight = constraints.maxHeight.floor();
-                  Random random = Random();
-                  int randomNumber = random.nextInt(btnContainerWidth);
-
-                  // btnPosition.first.first = randomNumber.toDouble();
-                  btnPosition = [
-                    [
-                      btnContainerWidth.toDouble() - widget.btnSize,
-                      btnContainerHeight.toDouble() - widget.btnSize
-                    ],
-                    [0, 0],
-                    [randomNumber.toDouble(), randomNumber.toDouble()]
-                  ];
-                  createBtnGroup();
-                  print("$btnPosition");
-
-                  return Stack(
+              padding: EdgeInsets.only(top: 10, bottom: 10),
+              child: Column(
+                children: [
+                  // Text('${containerKey.currentContext}'),
+                  Text('Tap two buttons with same number'),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
-                      Text('$btnContainerWidth'),
-                      Text('The text is $goalText'),
-                      for (var btn in btnUIGroup) btn,
+                      Text(
+                          'Your goal: ${widget.goalType == GameGoalType.freeMode ? 'Free Mode' : widget.repeLimit}'),
+                      Text('You reached: $repetitionDone')
                     ],
-                  );
-                },
+                  ),
+                  ElevatedButton(
+                    child: const Text(
+                      'But',
+                      style: TextStyle(fontSize: 20),
+                    ),
+                    onPressed: () async {
+                      print('hell');
+                      print('hell22');
+                      // finishGame();
+                      await showDialog(
+                          context: context,
+                          builder: (_) => AlertDialog(
+                                title:
+                                    const Text('Are you sure want to leave?'),
+                                actions: [
+                                  ElevatedButton(
+                                      onPressed: () {
+                                        // willLeave = true;
+                                        Navigator.of(context).pop();
+                                        finishGame();
+                                        // Navigator.pushReplacement(
+                                        //     context, MaterialPageRoute(builder: (context)=>GameDone()));
+                                      },
+                                      child: const Text('Yes')),
+                                  TextButton(
+                                      onPressed: () =>
+                                          Navigator.of(context).pop(),
+                                      child: const Text('No'))
+                                ],
+                              ));
+                    },
+                    onLongPress: () {
+                      print('long press');
+                    },
+                    style: ElevatedButton.styleFrom(
+                      fixedSize: const Size(20, 20),
+                      shape: const CircleBorder(),
+                    ),
+                  ),
+                ],
               ),
             ),
-          )
-        ],
+            Expanded(
+              child: Container(
+                margin: const EdgeInsets.fromLTRB(8, 8, 8, 16),
+                key: containerKey,
+                color: Colors.red,
+                width: double.infinity,
+                child: LayoutBuilder(
+                  builder: (BuildContext context, BoxConstraints constraints) {
+                    print("${constraints.maxWidth}");
+                    // Get container size for button random position range
+                    btnContainerWidth = constraints.maxWidth.floor();
+                    btnContainerHeight = constraints.maxHeight.floor();
+
+                    print(
+                        "$btnPosition + ${btnUIGroup.length} + infor ${btnInforList.length}");
+
+                    return Stack(
+                      children: btnInforList
+                          .map(
+                            (btn) => Positioned(
+                              left: btn.positionX,
+                              top: btn.positionY,
+                              child: PrescribedGameButton(
+                                  btnSize: widget.btnSize,
+                                  btnColor: btn.color,
+                                  title: btn.title,
+                                  onPressed: btn.btnOnPressed),
+                            ),
+                          )
+                          .toList(),
+                    );
+                  },
+                ),
+              ),
+            )
+          ],
+        ),
       ),
     );
   }
 
   void createGameDoc() {}
 
-  void createBtnList() {
-    for (var i = 1; i <= widget.btnNum; i++) {
-      Button btnInfor;
-      btnInfor = Button(
-          title: i.toString(),
-          color: Colors.blue,
-          position: [btnPosition[i - 1].first, btnPosition[i - 1].last]);
-      btnInforList.add(btnInfor);
-    }
-  }
-
-  void createBtnGroup() {
-    for (var i = 1; i <= widget.btnNum; i++) {
+  void createBtnInforList() {
+    print('create button infor list');
+    btnInforList.clear();
+    for (var i = 0; i < widget.btnNum; i++) {
       final btnInfor = Button(
-          title: i.toString(),
-          color: Colors.blue,
-          position: [btnPosition[i - 1].first, btnPosition[i - 1].last]);
+          title: (i + 1).toString(),
+          color: kBtnNormalColor,
+          // position: [btnPosition[i].first, btnPosition[i].last],
+          positionX: btnPosition[i].first,
+          positionY: btnPosition[i].last,
+          btnOnPressed: () {
+            pGameBtnOnPressed(i);
+          }
+          // print('You pressed in list $i');},
+          );
+      if (widget.isBtnIndicator == true && i == 0) {
+        btnInfor.color = kBtnIndicatorColor;
+      }
       btnInforList.add(btnInfor);
     }
-
-    for (var i = 1; i <= widget.btnNum; i++) {
-      final btnKey = GlobalKey();
-      btnKeys.add(btnKey);
-      final btn = PrescribedGameButton(
-        key: btnKey,
-        btnSize: widget.btnSize,
-        title: btnInforList[i - 1].title,
-        btnColor: btnInforList[i - 1].color,
-        onPressed: () {
-          setState(() {
-            if (btnInforList[i - 1].title == currentBtn.toString()) {
-              btnInforList[i - 1].title = "Y";
-              btnInforList[i - 1].color = Colors.red;
-              currentBtn++;
-              if (currentBtn == 4) {
-                currentBtn = 1;
-                for (var btnItem in btnInforList) {
-                  btnItem.color = Colors.blue;
-                }
-              }
-            }
-          });
-          print("Your clicked button ${btnInforList[i - 1].title}");
-        },
-      );
-      final positionedBtn = Positioned(
-          left: btnInforList[i - 1].position.first,
-          top: btnInforList[i - 1].position.last,
-          child: btn);
-      btnUIGroup.add(positionedBtn);
-    }
   }
+
+  // void createBtnGroup() {
+  //   for (var i = 1; i <= widget.btnNum; i++) {
+  //     final btnInfor = Button(
+  //         title: i.toString(),
+  //         color: Colors.blue,
+  //         position: [btnPosition[i - 1].first, btnPosition[i - 1].last],
+  //         btnOnPressed: () => pGameBtnOnPressed(i));
+  //     btnInforList.add(btnInfor);
+  //   }
+  //
+  //   for (var i = 1; i <= widget.btnNum; i++) {
+  //     final btnKey = GlobalKey();
+  //     btnKeys.add(btnKey);
+  //     final btn = PrescribedGameButton(
+  //       key: btnKey,
+  //       btnSize: widget.btnSize,
+  //       title: btnInforList[i - 1].title,
+  //       btnColor: btnInforList[i - 1].color,
+  //       onPressed: () {
+  //         setState(() {
+  //           if (btnInforList[i - 1].title == currentBtn.toString()) {
+  //             btnInforList[i - 1].title = "Y";
+  //             btnInforList[i - 1].color = Colors.red;
+  //             currentBtn++;
+  //             if (currentBtn == 4) {
+  //               currentBtn = 1;
+  //               for (var btnItem in btnInforList) {
+  //                 btnItem.color = Colors.blue;
+  //               }
+  //             }
+  //           }
+  //         });
+  //         print("Your clicked button ${btnInforList[i - 1].title}");
+  //       },
+  //     );
+  //     final positionedBtn = Positioned(
+  //         left: btnInforList[i - 1].position.first,
+  //         top: btnInforList[i - 1].position.last,
+  //         child: btn);
+  //     btnUIGroup.add(positionedBtn);
+  //   }
+  // }
 
   void checkBtnOverlap() {
     isOverlap = false;
-    for (var i = 0; i < btnPosition.length; i++) {
+    for (var i = 0; i < btnPosition.length - 1; i++) {
       if (isOverlap == true) {
         break;
       } else {
         for (var j = i + 1; j < btnPosition.length; j++) {
           var distance = sqrt(
-                  pow(btnPosition[i].first, 2) + pow(btnPosition[i].last, 2)) -
-              sqrt(pow(btnPosition[j].first, 2) + pow(btnPosition[j].last, 2));
-          if (distance.abs() <= sqrt(pow(widget.btnSize, 2) * 2)) {
+              pow(btnPosition[i].first - btnPosition[j].first, 2) +
+                  pow(btnPosition[i].last - btnPosition[j].last, 2));
+          // sqrt(
+          //     pow(btnPosition[i].first, 2) + pow(btnPosition[i].last, 2)) -
+          // sqrt(pow(btnPosition[j].first, 2) + pow(btnPosition[j].last, 2));
+          if (distance < sqrt(2) * widget.btnSize) {
             isOverlap = true;
             break;
           }
@@ -244,15 +313,58 @@ class _GamePlayState extends State<GamePlay> {
     }
   }
 
-  void resetBtnPosition() {
+  void generateBtnRandPosition() {
+    print('generate Btn Position');
     do {
-      randomBtnPosition();
+      print('Check over laping');
+      getRandomPosition();
       checkBtnOverlap();
     } while (isOverlap == true);
   }
 
-  void getRandomPosition() {
+  void generateBtnFixPosition() {
+    btnPosition.clear();
+    final double eachHeight =
+        (btnContainerHeight - (widget.btnNum * widget.btnSize)) /
+            (widget.btnNum + 1);
+    for (var i = 0; i < widget.btnNum; i++) {
+      double positionX = (btnContainerWidth - widget.btnSize) / 2;
+      double positionY = eachHeight * (i + 1) + widget.btnSize * i;
+      // int randomX = random.nextInt(btnContainerWidth - widget.btnSize.toInt());
+      // int randomY = random.nextInt(btnContainerHeight - widget.btnSize.toInt());
+      btnPosition.add([positionX, positionY]);
+    }
+  }
 
+  void resetBtnPosition() {
+    print('reset  Btn Position');
+    // update button position property
+    for (var i = 0; i < widget.btnNum; i++) {
+      btnInforList[i].positionX = btnPosition[i].first;
+      btnInforList[i].positionY = btnPosition[i].last;
+    }
+  }
+
+  void resetBtnView() {
+    print('resetBtn view');
+    for (var i = 0; i < widget.btnNum; i++) {
+      btnInforList[i].title = (i + 1).toString();
+      btnInforList[i].color = kBtnNormalColor;
+      widget.isBtnIndicator ? btnInforList[0].color = kBtnIndicatorColor : null;
+      // btnInforList[i].position.first = btnPosition[i].first;
+      // btnInforList[i].position.last = btnPosition[i].last;
+    }
+  }
+
+  void getRandomPosition() {
+    print('getRandomPosition');
+    btnPosition.clear();
+    Random random = Random();
+    for (var i = 0; i < widget.btnNum; i++) {
+      int randomX = random.nextInt(btnContainerWidth - widget.btnSize.toInt());
+      int randomY = random.nextInt(btnContainerHeight - widget.btnSize.toInt());
+      btnPosition.add([randomX.toDouble(), randomY.toDouble()]);
+    }
   }
 
   void randomBtnPosition() {
@@ -262,10 +374,72 @@ class _GamePlayState extends State<GamePlay> {
     for (var i = 1; i <= widget.btnNum; i++) {}
   }
 
+  //tag
+  void pGameBtnOnPressed(int btnIndex) {
+    print('inside btn pressed $btnIndex');
+    setState(() {
+      if (btnInforList[btnIndex].title == currentBtn.toString()) {
+        btnInforList[btnIndex].title = "\u2713";
+        btnInforList[btnIndex].color = kBtnNormalColor;
+        if (currentBtn < widget.btnNum && widget.isBtnIndicator == true) {
+          btnInforList[btnIndex + 1].color = kBtnIndicatorColor;
+        }
+        currentBtn++;
+        if (currentBtn == widget.btnNum + 1) {
+          repetitionDone++;
+          if (repetitionDone == widget.repeLimit &&
+              widget.goalType == GameGoalType.repetitionLimit) {
+            finishGame();
+            return;
+          }
+          currentBtn = 1;
+          if (widget.isBtnRandom) {
+            generateBtnRandPosition();
+            resetBtnPosition();
+          }
+
+          resetBtnView();
+          // for (var btnItem in btnInforList) {
+          //   btnItem.color = Colors.blue;
+          //   btnItem.title = btnIndex.toString();
+          // }
+        }
+      }
+    });
+    // print("Your clicked button ${btnInforList[0].title}");
+  }
+
   String getCurrentTime() {
     final timeStamp = DateTime.now().toString();
     return timeStamp;
   }
+
+  void finishGame() {
+    final gameInfor = Exercise(
+        isFreeMode: widget.isFreeMode,
+        gameGoalType: widget.goalType,
+        repetitionLimit: widget.repeLimit,
+        startAt: gameStartAt);
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => GameDone(gameResult: gameInfor)),
+    );
+  }
+
+  // Future<void> _navigateToChangeName(BuildContext context) async {
+  //   await Navigator.push(
+  //     context,
+  //     MaterialPageRoute(builder: (context) => const NameChange()),
+  //   );
+  //   // get name again when navigated back
+  //   getUserName();
+  //   // setState(() {
+  //   //   name = result;
+  //   // });
+  //
+  //   // print('The ### $result ');
+  // }
 
   Widget PGameButton() {
     return ElevatedButton(
@@ -321,7 +495,7 @@ class PrescribedGameButton extends StatelessWidget {
   final Function() onPressed;
 
   const PrescribedGameButton(
-      {required Key key,
+      {Key? key,
       required this.btnSize,
       required this.title,
       required this.btnColor,
