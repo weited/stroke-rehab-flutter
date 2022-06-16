@@ -12,7 +12,7 @@
 
 ## Others
 - **intl**: For time format. <https://pub.dev/packages/intl>
-- **shared_preferences**:
-- **image_picker**
-- **share_plus**:
-- **flutter_launcher_icons**:
+- **shared_preferences**: Persistent storage(SharedPreferences on Android). <https://pub.dev/packages/shared_preferences>
+- **image_picker** Pick Image from Gallery. <https://pub.dev/packages/image_picker>
+- **share_plus**: Share content. <https://pub.dev/packages/share_plus>
+- **flutter_launcher_icons**: Updating app icon. <https://pub.dev/packages/flutter_launcher_icons>
