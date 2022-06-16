@@ -1,11 +1,7 @@
-# stroke_rehab
-
-KIT721 Assignment 4 Flutter
+# Stroke Rehab - KIT721 Assignment 4 Flutter
 
 ## Third party plugins
-
 ### From lecture/tutorial
-
 - **provider**
 - **firebase_core**
 - **firebase_storage**
@@ -13,7 +9,6 @@ KIT721 Assignment 4 Flutter
 - **camera** 
 - **path_provider**
 - **path**
-
 
 ## Others
 - **intl**: For time format. <https://pub.dev/packages/intl>
