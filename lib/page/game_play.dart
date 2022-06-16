@@ -1,27 +1,31 @@
 // import 'dart:ffi';
+import 'dart:async';
 import 'dart:math';
-
+import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:stroke_rehab/button.dart';
 import 'package:stroke_rehab/constants.dart';
 import 'package:stroke_rehab/exercise.dart';
 import 'package:stroke_rehab/page/game_done.dart';
+import 'package:stroke_rehab/widgets/alert_dialog.dart';
+import 'package:stroke_rehab/widgets/game_button.dart';
 
 class GamePlay extends StatefulWidget {
-  GameName gameName;
-  bool isFreeMode;
-  GameGoalType goalType;
-  int repeLimit;
-  int timeLimit;
-  bool isBtnRandom;
-  bool isBtnIndicator;
-  int btnNum;
-  double btnSize;
+  final String docId;
+  final String gameName;
+  final String goalType;
+  final int repeLimit;
+  final int timeLimit;
+  final bool isBtnRandom;
+  final bool isBtnIndicator;
+  final int btnNum;
+  final double btnSize;
 
   GamePlay({
     Key? key,
-    this.gameName = GameName.prescribed,
-    this.isFreeMode = false,
+    required this.docId,
+    required this.gameName,
     required this.goalType,
     required this.repeLimit,
     required this.timeLimit,
@@ -31,181 +35,208 @@ class GamePlay extends StatefulWidget {
     required this.btnSize,
   }) : super(key: key);
 
+  static String getTimeStamp({TimeFormat? timeFormat}) {
+    DateFormat dateFormat;
+    switch (timeFormat) {
+      case TimeFormat.gameDocId:
+        dateFormat = DateFormat('yyyyMMddHHmmss');
+        break;
+      case TimeFormat.gameDuration:
+        dateFormat = DateFormat('dd-MM-yyyy HH:mm:ss');
+        break;
+      case TimeFormat.btnPressed:
+        dateFormat = DateFormat.Hms();
+        break;
+      default:
+        dateFormat = DateFormat.Hms();
+    }
+
+    final timeStamp = dateFormat.format(DateTime.now().toLocal()).toString();
+    return timeStamp;
+  }
+
   @override
   State<GamePlay> createState() => _GamePlayState();
 }
 
 class _GamePlayState extends State<GamePlay> {
   late final String docId;
-  late final bool isCompleted = false;
+  late bool isCompleted = false;
   late final String gameStartAt;
   late final String gameEndAt;
-  int repetitionDone = 0;
-  late int timeTaken;
-  String titleText = 'Game';
-  String goalText = 'A';
+  late int repetitionDone = 0;
+  late int timeTaken = 0;
   int currentBtn = 1;
 
-  List<Widget> btnUIGroup = [];
-  List<Key> btnKeys = [];
   List<List<double>> btnPosition = [];
+  List<Button> btnInforList = [];
   bool isOverlap = false;
 
+  List<int> btnPressed = [];
+  List<int> colorBtnCount = [];
+
+  String titleText = 'Start Now!';
+  late String gameHint;
   late int btnContainerWidth;
   late int btnContainerHeight;
 
-  List<Button> btnInforList = [];
-  var containerKey;
+  // var containerKey;
+  late final ExerciseModel exerciseModel;
 
-  get repeLimit => widget.repeLimit;
+  Timer? timer;
+  late int timeCountdown;
 
   @override
   void initState() {
-    // TODO: implement initState
-    docId = getCurrentTime();
-    gameStartAt = getCurrentTime();
-    // createBtnGroup();
-    // print("the button key is ${btnKeys[0]}");
-    super.initState();
-    print('btn groupd has ${btnUIGroup.length}');
+    exerciseModel = Provider.of<ExerciseModel>(context, listen: false);
+    // docId = getTimeStamp(timeFormat: TimeFormat.gameDocId);
+    gameStartAt = GamePlay.getTimeStamp(timeFormat: TimeFormat.gameDuration);
+    docId = widget.docId;
+    timeCountdown = widget.timeLimit;
+    gameHint = widget.gameName == GameName.pGame
+        ? 'Tap button in order'
+        : 'Tap two buttons with same color';
 
+    super.initState();
+    startTimer();
+
+    // after build, set the random based on rendered container size then rebuild again
     WidgetsBinding.instance?.addPostFrameCallback((timeStamp) {
       // After calculated the container width and height,
       widget.isBtnRandom ? generateBtnRandPosition() : generateBtnFixPosition();
       setState(() {
         createBtnInforList();
       });
-      print(
-          "after call back $btnPosition + ${btnUIGroup.length} + infor ${btnInforList.length}");
-
-      print('repe: $repeLimit, '
-          'time: ${widget.timeLimit}, '
-          'isRand: ${widget.isBtnRandom}, '
-          'next-indi: ${widget.isBtnIndicator}, btnnum: ${widget.btnNum}, btnS: ${widget.btnSize}'
-          'type: ${widget.goalType}');
     });
   }
 
   @override
+  void dispose() {
+    super.dispose();
+    stopTimer();
+  }
+
+  void startTimer() {
+    stopTimer();
+    if (widget.goalType == GameGoalType.timeLimit) {
+      timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+        if (timeCountdown > 0) {
+          setState(() {
+            timeCountdown--;
+            titleText = 'Time Left: $timeCountdown';
+          });
+        } else {
+          stopTimer();
+          finishGame();
+        }
+      });
+    } else {
+      timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+        setState(() {
+          timeTaken++;
+          titleText = 'Time Used: $timeTaken';
+        });
+      });
+    }
+  }
+
+  void stopTimer() {
+    timer?.cancel();
+  }
+
+  Future openDialog() => showDialog(
+      context: context,
+      builder: (context) => CustomAlertDialog(
+            titleText: 'leave',
+            onConfirmAction: () {
+              Navigator.of(context).pop();
+              finishGame();
+            },
+            onCancelAction: () {
+              Navigator.of(context).pop();
+              startTimer();
+            },
+          ));
+
+  @override
   Widget build(BuildContext context) {
-    print('inside build');
     // containerKey = GlobalKey();
     return WillPopScope(
       // https://stackoverflow.com/questions/61808024/flutter-how-can-i-catch-a-back-button-press-to-exit-my-app
       onWillPop: () async {
-        // bool willLeave = false;
-        // show the confirm dialog
-        await showDialog(
-            context: context,
-            builder: (_) => AlertDialog(
-                  title: const Text('Are you sure want to leave?'),
-                  actions: [
-                    ElevatedButton(
-                        onPressed: () {
-                          // willLeave = true;
-                          Navigator.of(context).pop();
-                          finishGame();
-                          // Navigator.pushReplacement(
-                          //     context, MaterialPageRoute(builder: (context)=>GameDone()));
-                        },
-                        child: const Text('Yes')),
-                    TextButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        child: const Text('No'))
-                  ],
-                ));
+        stopTimer();
+        await openDialog();
         return false;
       },
       child: Scaffold(
         appBar: AppBar(
           centerTitle: true,
           title: Text(titleText),
+          actions: [
+            IconButton(
+                onPressed: () {
+                  openDialog();
+                },
+                icon: const Icon(Icons.clear))
+          ],
           automaticallyImplyLeading: false,
         ),
         body: Column(
           children: [
             Container(
-              color: kTextContainerColor,
-              // height: 80,
-              width: double.infinity,
-              padding: EdgeInsets.only(top: 10, bottom: 10),
+              padding: const EdgeInsets.all(10),
               child: Column(
                 children: [
-                  // Text('${containerKey.currentContext}'),
-                  Text('Tap two buttons with same number'),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      Text(
-                          'Your goal: ${widget.goalType == GameGoalType.freeMode ? 'Free Mode' : widget.repeLimit}'),
-                      Text('You reached: $repetitionDone')
-                    ],
-                  ),
-                  ElevatedButton(
-                    child: const Text(
-                      'But',
-                      style: TextStyle(fontSize: 20),
-                    ),
-                    onPressed: () async {
-                      print('hell');
-                      print('hell22');
-                      // finishGame();
-                      await showDialog(
-                          context: context,
-                          builder: (_) => AlertDialog(
-                                title:
-                                    const Text('Are you sure want to leave?'),
-                                actions: [
-                                  ElevatedButton(
-                                      onPressed: () {
-                                        // willLeave = true;
-                                        Navigator.of(context).pop();
-                                        finishGame();
-                                        // Navigator.pushReplacement(
-                                        //     context, MaterialPageRoute(builder: (context)=>GameDone()));
-                                      },
-                                      child: const Text('Yes')),
-                                  TextButton(
-                                      onPressed: () =>
-                                          Navigator.of(context).pop(),
-                                      child: const Text('No'))
-                                ],
-                              ));
-                    },
-                    onLongPress: () {
-                      print('long press');
-                    },
-                    style: ElevatedButton.styleFrom(
-                      fixedSize: const Size(20, 20),
-                      shape: const CircleBorder(),
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          Row(
+                            children: [
+                              const Text('Your goal:  '),
+                              Text(widget.goalType == GameGoalType.freeMode
+                                  ? 'Free Mode'
+                                  : widget.goalType ==
+                                          GameGoalType.repetitionLimit
+                                      ? '${widget.repeLimit} Rounds'
+                                      : '${widget.timeLimit} Seconds'),
+                            ],
+                          ),
+                          Row(
+                            children: [
+                              const Text('You reached:  '),
+                              Text('$repetitionDone Rounds'),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
+                  Text(gameHint),
                 ],
               ),
             ),
             Expanded(
               child: Container(
                 margin: const EdgeInsets.fromLTRB(8, 8, 8, 16),
-                key: containerKey,
-                color: Colors.red,
                 width: double.infinity,
                 child: LayoutBuilder(
                   builder: (BuildContext context, BoxConstraints constraints) {
-                    print("${constraints.maxWidth}");
                     // Get container size for button random position range
                     btnContainerWidth = constraints.maxWidth.floor();
                     btnContainerHeight = constraints.maxHeight.floor();
-
-                    print(
-                        "$btnPosition + ${btnUIGroup.length} + infor ${btnInforList.length}");
-
                     return Stack(
                       children: btnInforList
                           .map(
                             (btn) => Positioned(
                               left: btn.positionX,
                               top: btn.positionY,
-                              child: PrescribedGameButton(
+                              child: GameButton(
+                                  showTitle: widget.gameName == GameName.pGame
+                                      ? true
+                                      : false,
                                   btnSize: widget.btnSize,
                                   btnColor: btn.color,
                                   title: btn.title,
@@ -224,72 +255,61 @@ class _GamePlayState extends State<GamePlay> {
     );
   }
 
-  void createGameDoc() {}
-
-  void createBtnInforList() {
-    print('create button infor list');
-    btnInforList.clear();
-    for (var i = 0; i < widget.btnNum; i++) {
-      final btnInfor = Button(
-          title: (i + 1).toString(),
-          color: kBtnNormalColor,
-          // position: [btnPosition[i].first, btnPosition[i].last],
-          positionX: btnPosition[i].first,
-          positionY: btnPosition[i].last,
-          btnOnPressed: () {
-            pGameBtnOnPressed(i);
-          }
-          // print('You pressed in list $i');},
-          );
-      if (widget.isBtnIndicator == true && i == 0) {
-        btnInfor.color = kBtnIndicatorColor;
-      }
-      btnInforList.add(btnInfor);
-    }
+  Future<void> createGameDoc(Exercise exercise) async {
+    var result = await exerciseModel.add(exercise);
+    docId = result;
   }
 
-  // void createBtnGroup() {
-  //   for (var i = 1; i <= widget.btnNum; i++) {
-  //     final btnInfor = Button(
-  //         title: i.toString(),
-  //         color: Colors.blue,
-  //         position: [btnPosition[i - 1].first, btnPosition[i - 1].last],
-  //         btnOnPressed: () => pGameBtnOnPressed(i));
-  //     btnInforList.add(btnInfor);
-  //   }
-  //
-  //   for (var i = 1; i <= widget.btnNum; i++) {
-  //     final btnKey = GlobalKey();
-  //     btnKeys.add(btnKey);
-  //     final btn = PrescribedGameButton(
-  //       key: btnKey,
-  //       btnSize: widget.btnSize,
-  //       title: btnInforList[i - 1].title,
-  //       btnColor: btnInforList[i - 1].color,
-  //       onPressed: () {
-  //         setState(() {
-  //           if (btnInforList[i - 1].title == currentBtn.toString()) {
-  //             btnInforList[i - 1].title = "Y";
-  //             btnInforList[i - 1].color = Colors.red;
-  //             currentBtn++;
-  //             if (currentBtn == 4) {
-  //               currentBtn = 1;
-  //               for (var btnItem in btnInforList) {
-  //                 btnItem.color = Colors.blue;
-  //               }
-  //             }
-  //           }
-  //         });
-  //         print("Your clicked button ${btnInforList[i - 1].title}");
-  //       },
-  //     );
-  //     final positionedBtn = Positioned(
-  //         left: btnInforList[i - 1].position.first,
-  //         top: btnInforList[i - 1].position.last,
-  //         child: btn);
-  //     btnUIGroup.add(positionedBtn);
-  //   }
-  // }
+  void uploadBtnPressed(String btnPressedTitle) async {
+    final btnPressedTime = GamePlay.getTimeStamp();
+    await exerciseModel.addButton(docId, btnPressedTime, btnPressedTitle);
+  }
+
+  // create button with properties and save to list
+  void createBtnInforList() {
+    btnInforList.clear();
+    if (widget.gameName != GameName.dGame) {
+      for (var i = 0; i < widget.btnNum; i++) {
+        final btnInfor = Button(
+            title: (i + 1).toString(),
+            color: kBtnNormalColor,
+            positionX: btnPosition[i].first,
+            positionY: btnPosition[i].last,
+            btnOnPressed: () {
+              pGameBtnOnPressed(i);
+            });
+        if (widget.isBtnIndicator == true && i == 0) {
+          btnInfor.color = kBtnIndicatorColor;
+        }
+        btnInforList.add(btnInfor);
+      }
+    } else {
+      Color btnColor;
+      int btnTag;
+      for (var i = 0; i < 6; i++) {
+        if (i < 2) {
+          btnColor = kBtnColor1;
+          btnTag = 1;
+        } else if (i > 3) {
+          btnColor = kBtnColor2;
+          btnTag = 2;
+        } else {
+          btnColor = kBtnColor3;
+          btnTag = 3;
+        }
+        final btnInfor = Button(
+            title: (i + 1).toString(),
+            tag: btnTag,
+            color: btnColor,
+            positionX: btnPosition[i].first,
+            positionY: btnPosition[i].last,
+            btnOnPressed: () {
+              dGameBtnOnPressed(i);
+            });
+        btnInforList.add(btnInfor);
+      }
+    }
+  }
 
   void checkBtnOverlap() {
     isOverlap = false;
@@ -301,9 +321,6 @@ class _GamePlayState extends State<GamePlay> {
           var distance = sqrt(
               pow(btnPosition[i].first - btnPosition[j].first, 2) +
                   pow(btnPosition[i].last - btnPosition[j].last, 2));
-          // sqrt(
-          //     pow(btnPosition[i].first, 2) + pow(btnPosition[i].last, 2)) -
-          // sqrt(pow(btnPosition[j].first, 2) + pow(btnPosition[j].last, 2));
           if (distance < sqrt(2) * widget.btnSize) {
             isOverlap = true;
             break;
@@ -314,9 +331,7 @@ class _GamePlayState extends State<GamePlay> {
   }
 
   void generateBtnRandPosition() {
-    print('generate Btn Position');
     do {
-      print('Check over laping');
       getRandomPosition();
       checkBtnOverlap();
     } while (isOverlap == true);
@@ -324,20 +339,40 @@ class _GamePlayState extends State<GamePlay> {
 
   void generateBtnFixPosition() {
     btnPosition.clear();
-    final double eachHeight =
-        (btnContainerHeight - (widget.btnNum * widget.btnSize)) /
-            (widget.btnNum + 1);
-    for (var i = 0; i < widget.btnNum; i++) {
-      double positionX = (btnContainerWidth - widget.btnSize) / 2;
-      double positionY = eachHeight * (i + 1) + widget.btnSize * i;
-      // int randomX = random.nextInt(btnContainerWidth - widget.btnSize.toInt());
-      // int randomY = random.nextInt(btnContainerHeight - widget.btnSize.toInt());
-      btnPosition.add([positionX, positionY]);
+    if (widget.gameName == GameName.pGame) {
+      final double eachHeight =
+          (btnContainerHeight - (widget.btnNum * widget.btnSize)) /
+              (widget.btnNum + 1);
+      for (var i = 0; i < widget.btnNum; i++) {
+        double positionX = (btnContainerWidth - widget.btnSize) / 2;
+        double positionY = eachHeight * (i + 1) + widget.btnSize * i;
+        btnPosition.add([positionX, positionY]);
+      }
+    } else {
+      final double eachWidth = (btnContainerWidth - (widget.btnSize * 2)) / 3;
+      final double eachHeight = (btnContainerHeight - (widget.btnSize * 3)) / 4;
+
+      for (var i = 0; i < 6; i++) {
+        double positionX;
+        double positionY;
+        if (i % 2 == 0) {
+          positionX = eachWidth;
+        } else {
+          positionX = eachWidth * 2 + widget.btnSize;
+        }
+        if (i < 2) {
+          positionY = eachHeight;
+        } else if (i > 3) {
+          positionY = eachHeight * 3 + widget.btnSize * 2;
+        } else {
+          positionY = eachHeight * 2 + widget.btnSize;
+        }
+        btnPosition.add([positionX, positionY]);
+      }
     }
   }
 
   void resetBtnPosition() {
-    print('reset  Btn Position');
     // update button position property
     for (var i = 0; i < widget.btnNum; i++) {
       btnInforList[i].positionX = btnPosition[i].first;
@@ -346,18 +381,33 @@ class _GamePlayState extends State<GamePlay> {
   }
 
   void resetBtnView() {
-    print('resetBtn view');
-    for (var i = 0; i < widget.btnNum; i++) {
-      btnInforList[i].title = (i + 1).toString();
-      btnInforList[i].color = kBtnNormalColor;
-      widget.isBtnIndicator ? btnInforList[0].color = kBtnIndicatorColor : null;
-      // btnInforList[i].position.first = btnPosition[i].first;
-      // btnInforList[i].position.last = btnPosition[i].last;
+    if (widget.gameName != GameName.dGame) {
+      for (var i = 0; i < widget.btnNum; i++) {
+        btnInforList[i].title = (i + 1).toString();
+        btnInforList[i].color = kBtnNormalColor;
+        widget.isBtnIndicator
+            ? btnInforList[0].color = kBtnIndicatorColor
+            : null;
+      }
+    } else {
+      for (var i = 0; i < widget.btnNum; i++) {
+        Color btnColor;
+        for (var i = 0; i < 6; i++) {
+          if (i < 2) {
+            btnColor = kBtnColor1;
+          } else if (i > 3) {
+            btnColor = kBtnColor2;
+          } else {
+            btnColor = kBtnColor3;
+          }
+          btnInforList[i].title = (i + 1).toString();
+          btnInforList[i].color = btnColor;
+        }
+      }
     }
   }
 
   void getRandomPosition() {
-    print('getRandomPosition');
     btnPosition.clear();
     Random random = Random();
     for (var i = 0; i < widget.btnNum; i++) {
@@ -367,16 +417,8 @@ class _GamePlayState extends State<GamePlay> {
     }
   }
 
-  void randomBtnPosition() {
-    // RenderBox btn = btnUIGroup[0].key?.currentContext.findRenderObject();
-    // RenderBox theBtn = btnKey.currentContext?.findRenderObject() as RenderBox;
-
-    for (var i = 1; i <= widget.btnNum; i++) {}
-  }
-
-  //tag
   void pGameBtnOnPressed(int btnIndex) {
-    print('inside btn pressed $btnIndex');
+    uploadBtnPressed((btnIndex + 1).toString());
     setState(() {
       if (btnInforList[btnIndex].title == currentBtn.toString()) {
         btnInforList[btnIndex].title = "\u2713";
@@ -389,6 +431,7 @@ class _GamePlayState extends State<GamePlay> {
           repetitionDone++;
           if (repetitionDone == widget.repeLimit &&
               widget.goalType == GameGoalType.repetitionLimit) {
+            isCompleted = true;
             finishGame();
             return;
           }
@@ -397,162 +440,78 @@ class _GamePlayState extends State<GamePlay> {
             generateBtnRandPosition();
             resetBtnPosition();
           }
-
           resetBtnView();
-          // for (var btnItem in btnInforList) {
-          //   btnItem.color = Colors.blue;
-          //   btnItem.title = btnIndex.toString();
-          // }
         }
       }
     });
-    // print("Your clicked button ${btnInforList[0].title}");
   }
 
-  String getCurrentTime() {
-    final timeStamp = DateTime.now().toString();
-    return timeStamp;
+  void dGameBtnOnPressed(int btnIndex) {
+    String btnColorName;
+    if (btnInforList[btnIndex].tag! < 2) {
+      btnColorName = 'Red';
+    } else if (btnInforList[btnIndex].tag! > 3) {
+      btnColorName = 'Yellow';
+    } else {
+      btnColorName = 'Green';
+    }
+    uploadBtnPressed(btnColorName);
+    setState(() {
+      if (btnPressed.isEmpty) {
+        btnPressed.add(btnIndex);
+        return;
+      }
+
+      if (btnPressed.first == btnIndex) {
+        return;
+      }
+      if (btnInforList[btnPressed.first].tag == btnInforList[btnIndex].tag) {
+        // btnInforList[btnIndex].title = '\u2713';
+        // btnInforList[btnPressed.first].title = '\u2713';
+        btnInforList[btnIndex].color = kBtnNormalColor;
+        btnInforList[btnPressed.first].color = kBtnNormalColor;
+        btnPressed.clear();
+
+        if (!colorBtnCount.contains(btnInforList[btnIndex].tag)) {
+          colorBtnCount.add(btnInforList[btnIndex].tag!);
+          currentBtn++;
+
+          if (currentBtn == 4) {
+            repetitionDone++;
+            if (repetitionDone == widget.repeLimit &&
+                widget.goalType == GameGoalType.repetitionLimit) {
+              isCompleted = true;
+              finishGame();
+              return;
+            }
+            colorBtnCount.clear();
+            currentBtn = 1;
+            if (widget.isBtnRandom) {
+              generateBtnRandPosition();
+              resetBtnPosition();
+            }
+            resetBtnView();
+          }
+        }
+      } else {
+        btnPressed.clear();
+        btnPressed.add(btnIndex);
+      }
+    });
   }
 
-  void finishGame() {
-    final gameInfor = Exercise(
-        isFreeMode: widget.isFreeMode,
-        gameGoalType: widget.goalType,
-        repetitionLimit: widget.repeLimit,
-        startAt: gameStartAt);
+  void finishGame() async {
+    gameEndAt = GamePlay.getTimeStamp(timeFormat: TimeFormat.gameDuration);
+
+    await exerciseModel.updateItem(
+        docId, isCompleted, repetitionDone, timeTaken, gameEndAt);
 
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (context) => GameDone(gameResult: gameInfor)),
+      MaterialPageRoute(
+          builder: (context) => GameDone(
+                id: docId,
+              )),
     );
   }
-
-  // Future<void> _navigateToChangeName(BuildContext context) async {
-  //   await Navigator.push(
-  //     context,
-  //     MaterialPageRoute(builder: (context) => const NameChange()),
-  //   );
-  //   // get name again when navigated back
-  //   getUserName();
-  //   // setState(() {
-  //   //   name = result;
-  //   // });
-  //
-  //   // print('The ### $result ');
-  // }
-
-  Widget PGameButton() {
-    return ElevatedButton(
-      child: const Text(
-        'But',
-        style: TextStyle(fontSize: 20),
-      ),
-      onPressed: () {
-        print('hell');
-      },
-      onLongPress: () {
-        print('long press');
-      },
-      style: ElevatedButton.styleFrom(
-        fixedSize: const Size(100, 100),
-        shape: const CircleBorder(),
-      ),
-    );
-  }
-}
-
-class BtnStack extends StatelessWidget {
-  const BtnStack({
-    Key? key,
-    required this.btnUIGroup,
-  }) : super(key: key);
-
-  final List<Widget> btnUIGroup;
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        // btnUIGroup.expand((element) => element),
-        for (var btn in btnUIGroup) btn,
-// btnUIGroup[0],
-//                     PrescribedGameButton(
-//                         key: btnKey,
-//                         title: '1',
-//                         onPressed: () {
-//                   print("Your clicked button ${btnKey} ");
-//                         }
-//                     ),
-      ],
-    );
-  }
-}
-
-class PrescribedGameButton extends StatelessWidget {
-  final double btnSize;
-  final String title;
-  final Color btnColor;
-  final Function() onPressed;
-
-  const PrescribedGameButton(
-      {Key? key,
-      required this.btnSize,
-      required this.title,
-      required this.btnColor,
-      required this.onPressed})
-      : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return ElevatedButton(
-      child: Text(
-        title,
-        style: TextStyle(fontSize: 20),
-      ),
-      onPressed: onPressed,
-      onLongPress: () {
-        print('long press');
-      },
-      style: ElevatedButton.styleFrom(
-        primary: btnColor,
-        fixedSize: Size(btnSize, btnSize),
-        shape: const CircleBorder(),
-      ),
-    );
-  }
-}
-
-class TestCustomPainter extends CustomPainter {
-  Paint _paintWhite = Paint()..color = Colors.white;
-
-  Paint _paintBlue = Paint()
-    ..color = Colors.blue
-    ..isAntiAlias = true;
-  Paint _paintRed = Paint()
-    ..color = Colors.red
-    ..isAntiAlias = true;
-  Paint _paintGreen = Paint()
-    ..color = Colors.green
-    ..isAntiAlias = true;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    Rect buttonRect = Rect.fromCircle(center: Offset(120, 250), radius: 100);
-    Rect buttonRect2 = Rect.fromCircle(center: Offset(220, 250), radius: 50);
-
-    if (buttonRect.overlaps(buttonRect2)) {
-      print("overlaped");
-    } else {
-      print("not overlap");
-    }
-    canvas.drawRect(buttonRect, _paintBlue);
-    canvas.drawRect(buttonRect2, _paintWhite);
-    canvas.drawRect(Rect.fromLTRB(90, 0, 180, 90), _paintWhite);
-    canvas.drawRect(Rect.fromLTRB(90, 0, 0, 90), _paintBlue);
-    canvas.drawRect(Rect.fromLTRB(0, 90, 90, 180), _paintRed);
-    canvas.drawRect(Rect.fromLTRB(180, 180, 90, 90), _paintGreen);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }

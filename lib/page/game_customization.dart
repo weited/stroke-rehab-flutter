@@ -1,12 +1,15 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:stroke_rehab/constants.dart';
+import 'package:stroke_rehab/exercise.dart';
 import 'package:stroke_rehab/page/game_play.dart';
-
-import '../constants.dart';
-import '../widgets/large_selection_button.dart';
+import 'package:stroke_rehab/widgets/large_action_button.dart';
 
 class GameCustom extends StatefulWidget {
-  const GameCustom({Key? key}) : super(key: key);
+  final String gameName;
+
+  const GameCustom({Key? key, required this.gameName}) : super(key: key);
 
   @override
   State<GameCustom> createState() => _GameCustomState();
@@ -14,7 +17,7 @@ class GameCustom extends StatefulWidget {
 
 class _GameCustomState extends State<GameCustom> {
   bool isFreeMode = false;
-  GameGoalType goalType = GameGoalType.repetitionLimit;
+  String goalType = GameGoalType.repetitionLimit;
   int repeLimit = 1;
   int timeLimit = 30;
   bool isBtnRandom = true;
@@ -23,8 +26,8 @@ class _GameCustomState extends State<GameCustom> {
   double btnSize = 80.0;
 
   List<bool> isSelected = [true, false, false];
-  final repeRange = [for (var i = 1; i < 21; i += 1) i];
-  final timeRange = [
+  final List<int> repeRange = [for (var i = 1; i < 21; i += 1) i];
+  final List<String> timeRange = [
     "30 s",
     "1 min",
     "1 min 30 s",
@@ -37,32 +40,35 @@ class _GameCustomState extends State<GameCustom> {
     "5 min 30 s",
     "5 min"
   ];
-  final btnNumRange = [2, 3, 4, 5];
-  final goalTypeRange = [
+  final List<int> btnNumRange = [2, 3, 4, 5];
+  final List<String> goalTypeRange = [
     GameGoalType.repetitionLimit,
     GameGoalType.timeLimit,
     GameGoalType.freeMode
   ];
 
-  // late FixedExtentScrollController scrollController;
-
-  // [
-  //   2,3,4,5,6,7,8,9,10
-  //
-  // ];
+  late final ExerciseModel exerciseModel;
 
   @override
   void initState() {
-    // TODO: implement initState
+    exerciseModel = Provider.of<ExerciseModel>(context, listen: false);
     super.initState();
-    // scrollController = FixedExtentScrollController(initialItem: 2);
   }
 
   @override
   void dispose() {
-    // TODO: implement dispose
-    // scrollController.dispose();
     super.dispose();
+  }
+
+  // create empty document and return id
+  Future<String> createGameDoc() async {
+    Exercise exercise = Exercise(
+        gameGoalType: goalType,
+        repetitionLimit: repeLimit,
+        timeLimit: timeLimit,
+        startAt: GamePlay.getTimeStamp(timeFormat: TimeFormat.gameDuration));
+    final addedDocId = await exerciseModel.add(exercise);
+    return addedDocId;
   }
 
   @override
@@ -70,7 +76,7 @@ class _GameCustomState extends State<GameCustom> {
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
-        title: Text('Game Customization'),
+        title: const Text('Game Customization'),
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -79,29 +85,25 @@ class _GameCustomState extends State<GameCustom> {
             flex: 2,
             child: Container(
               height: 70,
-              margin: EdgeInsets.fromLTRB(15, 20, 15, 0),
+              margin: const EdgeInsets.fromLTRB(15, 20, 15, 0),
               child: Column(
-                // mainAxisAlignment: MainAxisAlignment.center,
-                // crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   ToggleButtons(
-                    // color: Colors.blue,
                     fillColor: Colors.blue,
                     selectedColor: Colors.white,
                     isSelected: isSelected,
                     borderRadius: BorderRadius.circular(15),
-
-                    children: [
+                    children: const [
                       Padding(
-                        padding: const EdgeInsets.all(8.0),
+                        padding: EdgeInsets.all(8.0),
                         child: Text('Repetition'),
                       ),
                       Padding(
-                        padding: const EdgeInsets.all(8.0),
+                        padding: EdgeInsets.all(8.0),
                         child: Text('Time Limit'),
                       ),
                       Padding(
-                        padding: const EdgeInsets.all(8.0),
+                        padding: EdgeInsets.all(8.0),
                         child: Text('Free  Mode'),
                       )
                     ],
@@ -128,14 +130,12 @@ class _GameCustomState extends State<GameCustom> {
                           setState(() {
                             repeLimit = repeRange[item];
                           });
-
-                          print('selected $repeLimit');
                         },
                         children: repeRange
-                            .map((e) => Center(
+                            .map((element) => Center(
                                     child: Text(
-                                  '$e',
-                                  style: TextStyle(fontSize: 28),
+                                  '$element',
+                                  style: const TextStyle(fontSize: 28),
                                 )))
                             .toList(),
                       ),
@@ -155,7 +155,7 @@ class _GameCustomState extends State<GameCustom> {
                             .map((e) => Center(
                                     child: Text(
                                   e,
-                                  style: TextStyle(fontSize: 25),
+                                  style: const TextStyle(fontSize: 25),
                                 )))
                             .toList(),
                       ),
@@ -166,7 +166,6 @@ class _GameCustomState extends State<GameCustom> {
                 ],
               ),
               decoration: BoxDecoration(
-                // color: Color(0xFFFF2222),
                 borderRadius: BorderRadius.circular(10.0),
               ),
             ),
@@ -181,7 +180,7 @@ class _GameCustomState extends State<GameCustom> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Randomization button order:'),
+                      const Text('Randomization button order :'),
                       Switch(
                           value: isBtnRandom,
                           onChanged: (value) => setState(() {
@@ -190,48 +189,48 @@ class _GameCustomState extends State<GameCustom> {
                       // Text('With'),
                     ],
                   ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text('Next-button indication:'),
-                      Switch(
-                          value: isBtnIndicator,
-                          onChanged: (value) => setState(() {
-                                isBtnIndicator = value;
-                              })),
-                    ],
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text('Number of buttons:'),
-                      SizedBox(
-                        height: 50,
-                        width: 100,
-                        child: CupertinoPicker(
-                          itemExtent: 30,
-                          onSelectedItemChanged: (item) {
-                            setState(() {
-                              btnNum = btnNumRange[item];
-                            });
-
-                            print('selected $repeLimit');
-                          },
-                          children: btnNumRange
-                              .map((e) => Center(
-                                      child: Text(
-                                    '$e',
-                                    style: TextStyle(fontSize: 20),
-                                  )))
-                              .toList(),
+                  if (widget.gameName == GameName.pGame)
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Next-button indication :'),
+                        Switch(
+                            value: isBtnIndicator,
+                            onChanged: (value) => setState(() {
+                                  isBtnIndicator = value;
+                                })),
+                      ],
+                    ),
+                  if (widget.gameName == GameName.pGame)
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Number of buttons :'),
+                        SizedBox(
+                          height: 50,
+                          width: 100,
+                          child: CupertinoPicker(
+                            itemExtent: 30,
+                            onSelectedItemChanged: (item) {
+                              setState(() {
+                                btnNum = btnNumRange[item];
+                              });
+                            },
+                            children: btnNumRange
+                                .map((e) => Center(
+                                        child: Text(
+                                      '$e',
+                                      style: const TextStyle(fontSize: 20),
+                                    )))
+                                .toList(),
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    ),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Button size:'),
+                      const Text('Button size :'),
                       Slider(
                         value: btnSize.toDouble(),
                         min: 60.0,
@@ -253,14 +252,7 @@ class _GameCustomState extends State<GameCustom> {
                           '1',
                           style: TextStyle(fontSize: btnSize / 3),
                         ),
-                        onPressed: () {
-                          print('hell');
-                          print('repe: $repeLimit, '
-                              'time: $timeLimit, '
-                              'isRand: $isBtnRandom, '
-                              'next-indi: $isBtnIndicator, btnnum: $btnNum, btnS: $btnSize'
-                              'type: $goalType');
-                        },
+                        onPressed: () {},
                         style: ElevatedButton.styleFrom(
                           fixedSize: Size(btnSize, btnSize),
                           shape: const CircleBorder(),
@@ -270,43 +262,35 @@ class _GameCustomState extends State<GameCustom> {
                   ),
                 ],
               ),
-              margin: EdgeInsets.all(15.0),
+              margin: const EdgeInsets.all(15.0),
               decoration: BoxDecoration(
-                color: Color(0xFFEEEEEE),
+                color: const Color(0xFFEEEEEE),
                 borderRadius: BorderRadius.circular(10.0),
               ),
             ),
           ),
-          // Container(
-          //   child: Center(
-          //     child: Text(
-          //       'Start',
-          //       style: kLargeButtonTextStyle,
-          //     ),
-          //   ),
-          //   color: kBottomContainerColour,
-          //   margin: EdgeInsets.only(top: 10.0),
-          //   padding: EdgeInsets.only(bottom: 20.0),
-          //   width: double.infinity,
-          //   height: kBottomContainerHeight,
-          // ),
           Container(
             height: kBottomContainerHeight,
             child: LargeSelectionButton(
               buttonTitle: 'Start',
-              onPressed: () {
+              onPressed: () async {
+                String docId = await createGameDoc();
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(
-                      builder: (context) => GamePlay(
-                        goalType: goalType,
-                        repeLimit: repeLimit,
-                        timeLimit: timeLimit,
-                        isBtnRandom: isBtnRandom,
-                        isBtnIndicator: isBtnIndicator,
-                        btnNum: btnNum,
-                        btnSize: btnSize,
-                          )),
+                    builder: (context) => GamePlay(
+                      docId: docId,
+                      goalType: goalType,
+                      repeLimit: repeLimit,
+                      timeLimit: timeLimit,
+                      isBtnRandom: isBtnRandom,
+                      isBtnIndicator: isBtnIndicator,
+                      // random mode only allow 6 buttons
+                      btnNum: widget.gameName == GameName.pGame ? btnNum : 6,
+                      btnSize: btnSize,
+                      gameName: widget.gameName,
+                    ),
+                  ),
                 );
               },
             ),

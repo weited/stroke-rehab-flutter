@@ -1,100 +1,217 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:stroke_rehab/constants.dart';
+import 'package:stroke_rehab/exercise.dart';
+import 'package:stroke_rehab/widgets/history_list_item.dart';
 
-class Quizzler extends StatelessWidget {
+class History extends StatefulWidget {
+  const History({Key? key}) : super(key: key);
+
+  @override
+  State<History> createState() => _HistoryState();
+}
+
+class _HistoryState extends State<History> {
+  List<String> modeDropItems = ['All', 'Repetition', 'Time Limit', 'Free Mode'];
+  List<String> imgDropItems = ['All', 'Image', 'No Image'];
+
+  String modeSelectedItem = 'All';
+  String imgSelectedItem = 'All';
+
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      home: Scaffold(
-        backgroundColor: Colors.grey.shade900,
-        body: SafeArea(
-          child: QuizPage(),
+    return Consumer<ExerciseModel>(builder: buildScaffold);
+  }
+
+  Scaffold buildScaffold(BuildContext context, ExerciseModel exerciseModel, _) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('History'),
+        centerTitle: true,
+      ),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 10.0),
+          child: Column(
+            children: [
+              SizedBox(
+                child: Card(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Mode:'),
+                        DropdownButton<String>(
+                          value: modeSelectedItem,
+                          items: modeDropItems
+                              .map((item) => DropdownMenuItem<String>(
+                                  value: item,
+                                  child: Text(
+                                    item,
+                                  )))
+                              .toList(),
+                          onChanged: (String? newValue) {
+                            setState(() {
+                              modeSelectedItem = newValue!;
+                              exerciseModel.filterByModeAndImg(
+                                  modeSelectedItem, imgSelectedItem);
+                            });
+                          },
+                        ),
+                        Text('Image:'),
+                        DropdownButton<String>(
+                          value: imgSelectedItem,
+                          items: imgDropItems
+                              .map((item) => DropdownMenuItem<String>(
+                                  value: item,
+                                  child: Text(
+                                    item,
+                                  )))
+                              .toList(),
+                          onChanged: (String? newValue) {
+                            setState(() {
+                              imgSelectedItem = newValue!;
+                              exerciseModel.filterByModeAndImg(
+                                  modeSelectedItem, imgSelectedItem);
+                            });
+                          },
+                        ),
+                        SizedBox(
+                          height: 30,
+                          width: 30,
+                          child: Center(
+                            child: Ink(
+                              decoration: const ShapeDecoration(
+                                color: Colors.lightBlue,
+                                shape: CircleBorder(),
+                              ),
+                              child: Center(
+                                child: IconButton(
+                                  icon: const Icon(Icons.clear),
+                                  color: Colors.white,
+                                  iconSize: 15,
+                                  onPressed: () {
+                                    setState(() {
+                                      exerciseModel.filterClear();
+                                      modeSelectedItem = modeDropItems[0];
+                                      imgSelectedItem = imgDropItems[0];
+                                    });
+                                  },
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: Row(
+                        children: [
+                          SizedBox(
+                            width: 200,
+                            child: Text(
+                              'Total Attempts:',
+                              style: kDetailRowTextStyle,
+                            ),
+                          ),
+                          Text(
+                            exerciseModel.totalAttempts.toString(),
+                            style: kDetailRowTextStyle,
+                          ),
+                        ],
+                      ),
+                    ),
+                    Row(
+                      children: [
+                        SizedBox(
+                          width: 200,
+                          child: Text(
+                            'Total Button Pressed:',
+                            style: kDetailRowTextStyle,
+                          ),
+                        ),
+                        Text(
+                          exerciseModel.totalPressed.toString(),
+                          style: kDetailRowTextStyle,
+                        )
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                decoration: const BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(width: 1.5),
+                    top: BorderSide(width: 1.5),
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: const [
+                      Expanded(
+                        flex: 2,
+                        child: Center(
+                          child: Text(
+                            'Repetitions',
+                            style: TextStyle(
+                                fontSize: 14, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        flex: 3,
+                        child: Center(
+                          child: Text(
+                            'Time',
+                            style: TextStyle(
+                                fontSize: 14, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        flex: 2,
+                        child: Center(
+                          child: Text(
+                            'Detail',
+                            style: TextStyle(
+                                fontSize: 14, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              if (exerciseModel.loading)
+                const CircularProgressIndicator()
+              else
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: ListView.builder(
+                        itemBuilder: (_, index) {
+                          Exercise exercise = exerciseModel.items[index];
+                          return HistoryListItem(exercise: exercise);
+                        },
+                        itemCount: exerciseModel.items.length),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
   }
 }
-
-class QuizPage extends StatefulWidget {
-  @override
-  _QuizPageState createState() => _QuizPageState();
-}
-
-class _QuizPageState extends State<QuizPage> {
-
-  List<String> questions = [
-'You can lead a cow down stairs but not up stairs.',
-'Approximately one quarter of human bones are in the feet.',
-'A slug\'s blood is green.'
-  ];
-
-  int  questionNum = 0;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-
-        Expanded(
-          flex: 5,
-          child: Center(
-            child: Text(
-              questions[questionNum],
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 25.0,
-                color: Colors.white,
-              ),
-            ),
-          ),
-        ),
-        Expanded(
-          child: FlatButton(
-            textColor: Colors.white,
-            color: Colors.green,
-            child: Text(
-              'True',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 20.0,
-              ),
-            ),
-            onPressed: () {
-              //The user picked true.
-              setState(() {
-                if (questionNum < questions.length-1) {
-                  questionNum ++;
-                } else {
-                  questionNum = 0;
-                }
-              });
-            },
-          ),
-        ),
-        Expanded(
-          child: FlatButton(
-            color: Colors.red,
-            child: Text(
-              'False',
-              style: TextStyle(
-                fontSize: 20.0,
-                color: Colors.white,
-              ),
-            ),
-            onPressed: () {
-              //The user picked false.
-            },
-          ),
-        ),
-        //TODO: Add a Row here as your score keeper
-      ],
-    );
-  }
-}
-
-/*
-question1: 'You can lead a cow down stairs but not up stairs.', false,
-question2: 'Approximately one quarter of human bones are in the feet.', true,
-question3: 'A slug\'s blood is green.', true,
-*/

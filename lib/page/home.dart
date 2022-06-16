@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'name_change.dart';
-
 class Home extends StatefulWidget {
   const Home({
     Key? key,
@@ -15,18 +13,13 @@ class Home extends StatefulWidget {
 class _HomeState extends State<Home> {
   late String name = '';
 
-  // final prefs = await SharedPreferences.getInstance();
-
   @override
   void initState() {
     // TODO: implement initState
     getUserName();
     super.initState();
-
-    print('The home initState');
   }
 
-  // Home({Key? key, this.name}) : super(key: key);
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -47,14 +40,15 @@ class _HomeState extends State<Home> {
             ),
           ),
           Expanded(
-              child: Padding(
-            padding: const EdgeInsets.only(top: 20),
-            child: Text(
-              name,
-              style: Theme.of(context).textTheme.titleLarge,
-              textAlign: TextAlign.center,
+            child: Padding(
+              padding: const EdgeInsets.only(top: 20),
+              child: Text(
+                name,
+                style: Theme.of(context).textTheme.titleLarge,
+                textAlign: TextAlign.center,
+              ),
             ),
-          )),
+          ),
           Expanded(
             child: Center(
               child: TextButton(
@@ -69,7 +63,6 @@ class _HomeState extends State<Home> {
                       MaterialStateProperty.all<Color>(Colors.blue),
                 ),
                 onPressed: () {
-                  print('hello');
                   _navigateToChangeName(context);
                 },
               ),
@@ -82,7 +75,6 @@ class _HomeState extends State<Home> {
 
   void getUserName() async {
     final prefs = await SharedPreferences.getInstance();
-
     if (prefs.getString('username') != null &&
         prefs.getString('username')?.isNotEmpty == true) {
       setState(() {
@@ -102,34 +94,52 @@ class _HomeState extends State<Home> {
     );
     // get name again when navigated back
     getUserName();
-    // setState(() {
-    //   name = result;
-    // });
-
-    // print('The ### $result ');
   }
 }
 
-// class NameChange extends StatelessWidget {
-//
-//   const NameChange({Key? key}) : super(key: key);
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       appBar: AppBar(
-//         title: Center(
-//           child: Text('name change'),
-//         ),
-//       ),
-//       body: Container(
-//         child: TextField(
-//           decoration: const InputDecoration(
-//               hintText: "Enter Name",
-//               labelText: "Name"
-//           ),)
-//         ,
-//       ),
-//     );
-//   }
-// }
+
+class NameChange extends StatefulWidget {
+  const NameChange({Key? key}) : super(key: key);
+
+  @override
+  State<NameChange> createState() => _NameChangeState();
+}
+
+class _NameChangeState extends State<NameChange> {
+  var txtNameController = TextEditingController();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Center(
+          child: Text('name change'),
+        ),
+      ),
+      body: Column(
+        children: [
+          TextField(
+            controller: txtNameController,
+            decoration:
+            const InputDecoration(hintText: "Enter Name", labelText: "Name"),
+          ),
+          ElevatedButton(
+            child: const Text("Save"),
+            onPressed: () async {
+              //TODO: Navigate to second screen
+              print(txtNameController.text);
+              await setUserName(txtNameController.text);
+              Navigator.pop(context);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> setUserName(String name) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('username', name);
+  }
+}
+

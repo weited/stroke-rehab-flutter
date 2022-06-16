@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:stroke_rehab/constants.dart';
 import 'package:stroke_rehab/page/game_customization.dart';
-import 'package:stroke_rehab/page/game_mode.dart';
-import 'package:stroke_rehab/page/game_play.dart';
-import 'package:stroke_rehab/widgets/large_selection_button.dart';
+import 'package:stroke_rehab/widgets/large_action_button.dart';
 
 class GameSelect extends StatelessWidget {
   const GameSelect({Key? key}) : super(key: key);
@@ -15,30 +14,37 @@ class GameSelect extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          LargeSelectionButton(
-            buttonTitle: 'Game One',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => GameCustom()),
-              );
-            },
-          ),
           SizedBox(
+            height: 80,
+            child: LargeSelectionButton(
+              buttonTitle: 'Game One',
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) =>
+                          GameCustom(gameName: GameName.pGame)),
+                );
+              },
+            ),
+          ),
+          const SizedBox(
             height: 15,
           ),
-          LargeSelectionButton(
+          SizedBox(
+            height: 80,
+            child: LargeSelectionButton(
               buttonTitle: 'Game Two',
               onPressed: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                      builder: (context) => const GameMode(
-                            isPescGame: false,
-                          )),
+                      builder: (context) =>
+                          GameCustom(gameName: GameName.dGame)),
                 );
-                print('Game two');
-              })
+              },
+            ),
+          )
         ],
       ),
     );

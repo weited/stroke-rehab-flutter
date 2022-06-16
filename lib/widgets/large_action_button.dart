@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-
-import '../constants.dart';
+import 'package:stroke_rehab/constants.dart';
 
 class LargeSelectionButton extends StatelessWidget {
   final String buttonTitle;
@@ -17,12 +16,14 @@ class LargeSelectionButton extends StatelessWidget {
     return ElevatedButton(
       style: ElevatedButton.styleFrom(
         shape: RoundedRectangleBorder(),
-          // fixedSize: const Size(0, 80),
+        // fixedSize: const Size(0, 80),
       ),
       onPressed: onPressed,
       child: Center(
-        child: Text(buttonTitle,
-          style: kLargeButtonTextStyle,),
+        child: Text(
+          buttonTitle,
+          style: kLargeButtonTextStyle,
+        ),
       ),
     );
   }
