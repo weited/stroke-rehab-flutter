@@ -1,14 +1,14 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:stroke_rehab/exercise.dart';
 import 'package:stroke_rehab/page/history_details.dart';
 
 class HistoryListItem extends StatelessWidget {
   final Exercise exercise;
-
-  const HistoryListItem(
+  final Function keepFilter;
+  HistoryListItem(
       {Key? key,
-      required this.exercise})
+      required this.exercise,
+      required this.keepFilter})
       : super(key: key);
 
   @override
@@ -17,7 +17,7 @@ class HistoryListItem extends StatelessWidget {
       child: GestureDetector(
         onTap: () {
           Navigator.push(context, MaterialPageRoute(builder: (context) {
-            return HistoryDetails(id: exercise.id!);
+            return HistoryDetails(id: exercise.id!, keepFilter:keepFilter,);
           }));
         },
         child: Container(

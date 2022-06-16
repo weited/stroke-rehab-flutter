@@ -10,8 +10,9 @@ import 'package:stroke_rehab/widgets/large_action_button.dart';
 
 class HistoryDetails extends StatefulWidget {
   final String id;
+  final Function keepFilter;
 
-  const HistoryDetails({Key? key, required this.id}) : super(key: key);
+  HistoryDetails({Key? key, required this.id, required this.keepFilter}) : super(key: key);
 
   @override
   State<HistoryDetails> createState() => _HistoryDetailsState();
@@ -130,6 +131,7 @@ class _HistoryDetailsState extends State<HistoryDetails> {
                                   await exerciseModel.delete(widget.id);
                                   exit = true;
                                   Navigator.of(context).pop();
+                                  widget.keepFilter();
                                 },
                                 onCancelAction: () {
                                   exit = false;

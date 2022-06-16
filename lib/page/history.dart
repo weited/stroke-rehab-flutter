@@ -113,7 +113,7 @@ class _HistoryState extends State<History> {
                 child: Column(
                   children: [
                     Padding(
-                      padding: const EdgeInsets.only(bottom: 6),
+                      padding: const EdgeInsets.symmetric(vertical: 6),
                       child: Row(
                         children: [
                           SizedBox(
@@ -203,7 +203,13 @@ class _HistoryState extends State<History> {
                     child: ListView.builder(
                         itemBuilder: (_, index) {
                           Exercise exercise = exerciseModel.items[index];
-                          return HistoryListItem(exercise: exercise);
+                          return HistoryListItem(
+                              exercise: exercise,
+                              keepFilter: () {
+                                // pass function so after deleted the filter can stay same
+                                exerciseModel.filterByModeAndImg(
+                                    modeSelectedItem, imgSelectedItem);
+                              });
                         },
                         itemCount: exerciseModel.items.length),
                   ),

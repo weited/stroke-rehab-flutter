@@ -233,6 +233,7 @@ class ExerciseModel extends ChangeNotifier {
       );
       print('Document successfully updated!');
     } catch (e) {
+      loading = false;
       print('Error updating document $e');
     }
 
@@ -256,6 +257,7 @@ class ExerciseModel extends ChangeNotifier {
       await exercisesCollection.doc(id).update({"imgPath": imgPath});
       print('Image successfully uploaded!');
     } catch (e) {
+      loading = false;
       print('Error uploading document $e');
     }
 
@@ -267,8 +269,13 @@ class ExerciseModel extends ChangeNotifier {
     loading = true;
     update();
 
-    await exercisesCollection.doc(id).delete();
-
+    try {
+      await exercisesCollection.doc(id).delete();
+      print('Record successfully deleted!');
+    } catch (e) {
+      loading = false;
+      print('Error deleting document $e');
+    }
     //refresh the db
     await fetch();
   }
